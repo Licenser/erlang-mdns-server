@@ -1,4 +1,3 @@
-%%-*- mode: erlang -*-
 %% Copyright (c) 2012, Peter Morgan <peter.james.morgan@gmail.com>
 %%
 %% Permission to use, copy, modify, and/or distribute this software for any
@@ -12,21 +11,22 @@
 %% WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-%%
-{application, mdns,
- [
-  {description, "mDNS Erlang Node Discovery"},
-  {vsn, "0.1"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  {mod, { mdns_application, []}},
-  {env, [
-	 {port, 5353},
-	 {address, {224, 0, 0, 251}},
-	 {domain, ".local"},
-	 {type, "_erlang._tcp"}
-	]}
- ]}.
+
+-module(mdns_application).
+-behaviour(application).
+
+%% Application callbacks
+-export([start/2,
+	 stop/1]).
+
+%% ===================================================================
+%% Application callbacks
+%% ===================================================================
+
+start(_StartType, _StartArgs) ->
+    mdns_supervisor:start_link([application:get_all_env()]).
+    
+
+
+stop(_State) ->
+    ok.

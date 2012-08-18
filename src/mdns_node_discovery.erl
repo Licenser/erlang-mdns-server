@@ -100,7 +100,7 @@ handle_info(timeout, State) ->
     announce(State),
     {noreply, State, random_timeout(announcements, State)};
 handle_info({udp, _, _, _, _}, State) ->
-    {noreply, State,  random_timeout(announcements, State)}.
+    {noreply, State, random_timeout(announcements, State)}.
 
 terminate(_, #state{socket = Socket} = State) ->
     announce(State#state{ttl = 0}),
@@ -198,6 +198,3 @@ texts(Names, Hostname, #state{ttl = TTL} = State) ->
     
 instance(Node, Hostname, #state{type = Type, domain = Domain}) ->
     Node ++ "@" ++ Hostname ++ "." ++ Type ++ Domain.
-
-
-

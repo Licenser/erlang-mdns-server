@@ -12,25 +12,20 @@
 %% ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
--module(mdns_node_discovery_event).
--export([add_handler/1,
-	 add_handler/2,
-	 manager/0,
-	 notify_node_advertisement/1]).
+-module(mdns).
+-export([start/0,
+	 name/0,
+	 stop/0,
+	 make/0]).
 
+name() ->
+    ?MODULE.
 
-manager() ->
-    mdns_node_discovery_manager.
+start() ->
+    application:start(?MODULE).
 
-add_handler(Handler) ->
-    add_handler(Handler, []).
+stop() ->
+    gen_server:call(name(), stop).
 
-add_handler(Handler, Args) ->
-    gen_event:add_handler(manager(), Handler, Args).
-
-notify_node_advertisement(Node) ->
-    notify(manager(), {node_advertisement, Node}).
-
-notify(Manager, Message) ->
-    gen_event:notify(Manager, Message).
-
+make() ->
+    make:all([load]).
