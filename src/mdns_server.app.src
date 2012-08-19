@@ -25,8 +25,8 @@
 	 {address, {224, 0, 0, 251}},
 	 {domain, ".local"},
 	 {type, "_erlang._tcp"},
-	 {options, 
-	  [{name, "test"},
-	   {opt1, "wobble"}]}
+	 {ip, "127.0.0.1"},
+	 {port, "4223"}
+	  [{opt, "value"}]}
 	]}
  ]}.

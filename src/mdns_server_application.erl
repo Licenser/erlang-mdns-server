@@ -25,8 +25,6 @@
 
 start(_StartType, _StartArgs) ->
     mdns_server_supervisor:start_link([application:get_all_env()]).
-    
-
 
 stop(_State) ->
     ok.
