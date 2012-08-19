@@ -24,7 +24,7 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    mdns_supervisor:start_link([application:get_all_env()]).
+    mdns_server_supervisor:start_link([application:get_all_env()]).
     
 
 

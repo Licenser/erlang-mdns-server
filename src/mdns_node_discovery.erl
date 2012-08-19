@@ -62,6 +62,7 @@ stop() ->
 		port,
 		address,
 		ttl = 120,
+		options = [],
 		socket}).
 
 init(Parameters) ->
@@ -79,6 +80,8 @@ init([{domain, Domain} | T], State) ->
     init(T, State#state{domain = Domain});
 init([{ttl, TTL} | T], State) ->
     init(T, State#state{ttl = TTL});
+init([{options, Options} | T], State) ->
+    init(T, State#state{options=Options});
 init([_ | T], State) ->
     init(T, State);
 init([], #state{port = Port, address = Address} = State) ->
@@ -142,21 +145,21 @@ is_running_multicast_interface(Flags) ->
 	lists:member(multicast, Flags).
 
 announce(State) ->
-    {ok, Names} = net_adm:names(),
     {ok, Hostname} = inet:gethostname(),
-    announce(Names, Hostname, State).
+    announce(Hostname, State).
 
-announce(Names, Hostname, #state{address = Address, port = Port, socket = Socket} = State) ->
-    Message = message(Names, Hostname, State),
+announce(Hostname, #state{address = Address, port = Port, socket = Socket} = State) ->
+    Message = message(Hostname, State),
+    io:format("send"),
     gen_udp:send(Socket,
 		 Address,
 		 Port,
 		 inet_dns:encode(Message)).
 
-message(Names, Hostname, State) ->
+message(Hostname, State) ->
     inet_dns:make_msg([{header, header()},
-		       {anlist, answers(Names, Hostname, State)},
-		       {arlist, resources(Names, Hostname, State)}]).
+		       {anlist, answers(Hostname, State)},
+		       {arlist, resources(Hostname, State)}]).
 
 header() ->
     inet_dns:make_header([{id,0},
@@ -169,32 +172,51 @@ header() ->
 			  {pr,false},
 			  {rcode,0}]).
 
-answers(Names, Hostname, #state{type = Type, domain = Domain, ttl = TTL} = State) ->
+answers(Hostname, #state{type = Type, domain = Domain, ttl = TTL} = State) ->
     [inet_dns:make_rr([{type, ptr},
 		       {domain, Type ++ Domain},
 		       {class, in},
 		       {ttl, TTL},
-		       {data, instance(Node, Hostname, State)}
-		      ]) || {Node, _} <- Names].
+		       {data, instance(Hostname, State)}
+		      ])].
 
-resources(Names, Hostname, State) ->
-    services(Names, Hostname, State) ++ texts(Names, Hostname, State).
+resources(Hostname, State) ->
+    services(Hostname, State) ++ texts(Hostname, State).
 
-services(Names, Hostname, #state{domain = Domain, ttl = TTL} = State) ->
-    [inet_dns:make_rr([{domain, instance(Node, Hostname, State)},
+services(Hostname, #state{domain = Domain, ttl = TTL, port=Port} = State) ->
+    [inet_dns:make_rr([{domain, instance(Hostname, State)},
 		       {type, srv},
 		       {class, in},
 		       {ttl, TTL},
-		       {data, {0, 0, Port, Hostname ++ Domain}}]) || {Node, Port} <- Names].
+		       {data, {0, 0, Port, Hostname ++ Domain}}])].
 
-texts(Names, Hostname, #state{ttl = TTL} = State) ->
-    [inet_dns:make_rr([{domain, instance(Node, Hostname, State)},
+texts(Hostname, #state{ttl = TTL, options = Options} = State) ->
+    [inet_dns:make_rr([{domain, instance(Hostname, State)},
 		       {type, txt},
 		       {class, in},
 		       {ttl, TTL},
-		       {data, ["node=" ++ Node,
-			       "hostname=" ++ net_adm:localhost(),
-			       "port=" ++ integer_to_list(Port)]}]) || {Node, Port} <- Names].
+		       {data, texts_data(Options)}])].
+
+
+texts_data([{Opt, Val} | Options]) ->
+    [ ensure_list(Opt) ++ "=" ++ ensure_list(Val) | texts_data(Options)];
+texts_data([]) ->
+    [].
     
-instance(Node, Hostname, #state{type = Type, domain = Domain}) ->
-    Node ++ "@" ++ Hostname ++ "." ++ Type ++ Domain.
+instance(Hostname, #state{type = Type, domain = Domain}) ->
+    Hostname ++ "." ++ Type ++ Domain.
+
+ensure_list(I) when is_integer(I) ->
+    integer_to_list(I);
+ensure_list(B) when is_binary(B) ->
+    binary_to_list(B);
+ensure_list(A) when is_atom(A) ->
+    atom_to_list(A);
+ensure_list(L) when is_list(L)->
+    L.
+
+
+
+
+
+		       

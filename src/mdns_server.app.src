@@ -24,6 +24,9 @@
   {env, [{port, 5353},
 	 {address, {224, 0, 0, 251}},
 	 {domain, ".local"},
-	 {type, "_erlang._tcp"}
+	 {type, "_erlang._tcp"},
+	 {options, 
+	  [{name, "test"},
+	   {opt1, "wobble"}]}
 	]}
  ]}.
