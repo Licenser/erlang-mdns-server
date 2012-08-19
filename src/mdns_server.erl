@@ -13,6 +13,7 @@
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 -module(mdns_server).
+
 -export([start/0,
 	 name/0,
 	 stop/0,
