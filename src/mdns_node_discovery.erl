@@ -150,7 +150,6 @@ announce(State) ->
 
 announce(Hostname, #state{address = Address, port = Port, socket = Socket} = State) ->
     Message = message(Hostname, State),
-    io:format("send.~n"),
     gen_udp:send(Socket,
 		 Address,
 		 Port,
