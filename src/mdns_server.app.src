@@ -24,7 +24,6 @@
   {env, [{port, 5353},
 	 {address, {224, 0, 0, 251}},
 	 {domain, ".local"},
-	 {type, "_erlang._tcp"},
 	 {ip, "127.0.0.1"},
 	 {port, "4223"}]}
  ]}.
