@@ -86,9 +86,15 @@ init([{interface, Iface} | T], State) ->
     init(T, State#state{interface=Iface});
 init([_ | T], State) ->
     init(T, State);
-init([], #state{port = Port, address = Address} = State) ->
+init([], #state{port = Port, address = Address, interface = IFace} = State) ->
+    If = case IFace of
+             undefined ->
+                 multicast_if();
+             _ ->
+                 IFace
+         end,
     {ok, Socket} = gen_udp:open(Port, [{reuseaddr, true},
-                                       {multicast_if, multicast_if(State#state.interface)},
+                                       {multicast_if, If},
                                        {ip, Address}]),
     {ok, State#state{socket = Socket}, random_timeout(initial, State)}.
 
@@ -123,26 +129,17 @@ random_timeout(initial, _) ->
 random_timeout(announcements, #state{ttl = TTL}) ->
     crypto:rand_uniform(TTL * 500, TTL * 1000).
 
-multicast_if(Iface) ->
+multicast_if() ->
     {ok, Interfaces} = inet:getifaddrs(),
-    multicast_if(Interfaces, Iface).
+    multicast_if(Interfaces).
 
-multicast_if([{_, H} | T], undefined) ->
+multicast_if([{_, H} | T]) ->
     case is_running_multicast_interface(proplists:get_value(flags, H)) andalso proplists:is_defined(addr, H) of
         true ->
             v4(proplists:get_all_values(addr, H));
         false ->
-            multicast_if(T, undefined)
-    end;
-multicast_if([{_, H} | T], IFace) ->
-    case is_running_multicast_interface(proplists:get_value(flags, H)) andalso
-        proplists:get_value(addr, H) =:= IFace of
-        true ->
-            v4(proplists:get_all_values(addr, H));
-        false ->
-            multicast_if(T, IFace)
+            multicast_if(T)
     end.
-
 
 v4([{_, _, _, _} = V4 | _]) ->
     V4;
