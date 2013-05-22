@@ -132,7 +132,7 @@ multicast_if([{_, H} | T], undefined) ->
         true ->
             v4(proplists:get_all_values(addr, H));
         false ->
-            multicast_if(T)
+            multicast_if(T, undefined)
     end;
 multicast_if([{_, H} | T], IFace) ->
     case is_running_multicast_interface(proplists:get_value(flags, H)) andalso
@@ -140,7 +140,7 @@ multicast_if([{_, H} | T], IFace) ->
         true ->
             v4(proplists:get_all_values(addr, H));
         false ->
-            multicast_if(T)
+            multicast_if(T, IFace)
     end.
 
 
