@@ -127,7 +127,7 @@ code_change(_OldVsn, State, _Extra) ->
 random_timeout(initial, _) ->
     crypto:rand_uniform(500, 1500);
 random_timeout(announcements, #state{ttl = TTL}) ->
-    crypto:rand_uniform(TTL * 500, TTL * 1000).
+    crypto:rand_uniform(TTL * 500, TTL * 900).
 
 multicast_if() ->
     {ok, Interfaces} = inet:getifaddrs(),
