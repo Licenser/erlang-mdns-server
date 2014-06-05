@@ -70,6 +70,8 @@ init(Parameters) ->
     process_flag(trap_exit, true),
     init(Parameters, #state{}).
 
+init([{listener, {Address, Port}} | T], State) ->
+    init(T, State#state{address = Address, port=Port});
 init([{port, Port} | T], State) ->
     init(T, State#state{port = Port});
 init([{address, Address} | T], State) ->
@@ -96,7 +98,8 @@ init([], #state{port = Port, address = Address, interface = IFace} = State) ->
     {ok, Socket} = gen_udp:open(Port, [{reuseaddr, true},
                                        {multicast_if, If},
                                        {ip, Address}]),
-    {ok, State#state{socket = Socket}, random_timeout(initial, State)}.
+    erlang:send_after(random_timeout(initial, State), self(), announce),
+    {ok, State#state{socket = Socket}}.
 
 handle_call(advertise, _, State) ->
     {reply, announce(State), State, random_timeout(announcements, State)};
@@ -107,11 +110,12 @@ handle_call(stop, _, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(timeout, State) ->
+handle_info(announce, State) ->
     announce(State),
-    {noreply, State, random_timeout(announcements, State)};
+    erlang:send_after(random_timeout(announcements, State), self(), announce),
+    {noreply, State};
 handle_info({udp, _, _, _, _}, State) ->
-    {noreply, State, random_timeout(announcements, State)}.
+    {noreply, State}.
 
 terminate(_, #state{socket = Socket} = State) ->
     announce(State#state{ttl = 0}),
