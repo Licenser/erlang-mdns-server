@@ -22,8 +22,8 @@
                  ]},
   {mod, {mdns_server_application, []}},
   {env, [{port, 5353},
-	 {address, {224, 0, 0, 251}},
-	 {domain, ".local"},
-	 {ip, "127.0.0.1"},
-	 {port, "4223"}]}
+         {address, {224, 0, 0, 251}},
+         {domain, ".local"},
+         {ip, "127.0.0.1"},
+         {port, "4223"}]}
  ]}.

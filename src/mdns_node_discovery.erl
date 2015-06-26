@@ -216,12 +216,12 @@ texts(Hostname, #state{ttl = TTL, options = Options} = State) ->
                        {ttl, TTL},
                        {data, texts_data(Options)}])].
 
-as(Hostname, #state{ttl = TTL, address = Address} = State) ->
+as(Hostname, #state{ttl = TTL, interface = IP} = State) ->
     [inet_dns:make_rr([{domain, instance(Hostname, State)},
                        {type, a},
                        {class, in},
                        {ttl, TTL},
-                       {data, Address}])].
+                       {data, IP}])].
 
 
 texts_data([{Opt, Val} | Options]) ->
