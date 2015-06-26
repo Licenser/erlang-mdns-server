@@ -65,7 +65,8 @@ stop() ->
                 options = [],
                 interface,
                 service,
-                socket}).
+                socket,
+                timeout}).
 
 init(Parameters) ->
     process_flag(trap_exit, true),
@@ -103,8 +104,8 @@ init([], #state{port = Port, address = Address, interface = IFace,
                                        {multicast_loop, true},
                                        {add_membership, {Address, If}},
                                        binary]),
-    erlang:send_after(random_timeout(initial, State), self(), announce),
-    {ok, State#state{socket = Socket, service = Type ++ Domain}}.
+    T = erlang:send_after(random_timeout(initial, State), self(), announce),
+    {ok, State#state{socket = Socket, service = Type ++ Domain, timeout = T}}.
 
 handle_call(advertise, _, State) ->
     {reply, announce(State), State, random_timeout(announcements, State)};
@@ -115,10 +116,11 @@ handle_call(stop, _, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(announce, State) ->
+handle_info(announce, State = #state{timeout = T}) ->
+    erlang:cancel_timer(T),
     announce(State),
-    erlang:send_after(random_timeout(announcements, State), self(), announce),
-    {noreply, State};
+    T1 = erlang:send_after(random_timeout(announcements, State), self(), announce),
+    {noreply, State#state{timeout = T1}};
 handle_info({udp, _Sock, _IP, 5353, Data}, State) ->
     check_data(Data, State),
     {noreply, State};
@@ -255,7 +257,7 @@ check_query({dns_rec,
              [],[],[]}, #state{service = Service}) ->
     case inet_dns:header(DnsHeader, opcode) of
         'query' ->
-            advertise();
+            self() ! announce;
         _ ->
             ok
     end;
@@ -266,7 +268,7 @@ check_query({dns_rec,
              [],[],[]}, #state{domain = Domain}) ->
     case inet_dns:header(DnsHeader, opcode) of
         'query' ->
-            advertise();
+            self() ! announce;
         _ ->
             ok
     end;
