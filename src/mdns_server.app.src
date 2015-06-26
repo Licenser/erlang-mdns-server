@@ -14,8 +14,8 @@
 %% OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 %%
 {application, mdns_server,
- [{description, "mDNS Erlang Node Discovery"},
-  {vsn, "0.1"},
+ [{description, "mDNS service discovery server"},
+  {vsn, "0.1.0"},
   {registered, []},
   {applications, [kernel,
                   stdlib

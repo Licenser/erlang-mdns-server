@@ -64,6 +64,7 @@ stop() ->
                 ttl = 120,
                 options = [],
                 interface,
+                service,
                 socket}).
 
 init(Parameters) ->
@@ -88,7 +89,8 @@ init([{interface, Iface} | T], State) ->
     init(T, State#state{interface=Iface});
 init([_ | T], State) ->
     init(T, State);
-init([], #state{port = Port, address = Address, interface = IFace} = State) ->
+init([], #state{port = Port, address = Address, interface = IFace,
+                type = Type, domain = Domain} = State) ->
     If = case IFace of
              undefined ->
                  multicast_if();
@@ -97,9 +99,12 @@ init([], #state{port = Port, address = Address, interface = IFace} = State) ->
          end,
     {ok, Socket} = gen_udp:open(Port, [{reuseaddr, true},
                                        {multicast_if, If},
-                                       {ip, Address}]),
+                                       {ip, Address},
+                                       {multicast_loop, true},
+                                       {add_membership, {Address, If}},
+                                       binary]),
     erlang:send_after(random_timeout(initial, State), self(), announce),
-    {ok, State#state{socket = Socket}}.
+    {ok, State#state{socket = Socket, service = Type ++ Domain}}.
 
 handle_call(advertise, _, State) ->
     {reply, announce(State), State, random_timeout(announcements, State)};
@@ -113,6 +118,9 @@ handle_cast(_Msg, State) ->
 handle_info(announce, State) ->
     announce(State),
     erlang:send_after(random_timeout(announcements, State), self(), announce),
+    {noreply, State};
+handle_info({udp, _Sock, _IP, 5353, Data}, State) ->
+    check_data(Data, State),
     {noreply, State};
 handle_info({udp, _, _, _, _}, State) ->
     {noreply, State}.
@@ -131,7 +139,7 @@ code_change(_OldVsn, State, _Extra) ->
 random_timeout(initial, _) ->
     crypto:rand_uniform(500, 1500);
 random_timeout(announcements, #state{ttl = TTL}) ->
-    crypto:rand_uniform(TTL * 500, TTL * 900).
+    crypto:rand_uniform(TTL * 100, TTL * 500).
 
 multicast_if() ->
     {ok, Interfaces} = inet:getifaddrs(),
@@ -169,7 +177,7 @@ announce(Hostname, #state{address = Address, port = Port, socket = Socket} = Sta
 
 message(Hostname, State) ->
     inet_dns:make_msg([{header, header()},
-                       {anlist, answers(Hostname, State)},
+                       {anlist, answers(Hostname, State) ++ as(Hostname, State)},
                        {arlist, resources(Hostname, State)}]).
 
 header() ->
@@ -208,14 +216,21 @@ texts(Hostname, #state{ttl = TTL, options = Options} = State) ->
                        {ttl, TTL},
                        {data, texts_data(Options)}])].
 
+as(Hostname, #state{ttl = TTL, address = Address} = State) ->
+    [inet_dns:make_rr([{domain, instance(Hostname, State)},
+                       {type, a},
+                       {class, in},
+                       {ttl, TTL},
+                       {data, Address}])].
+
 
 texts_data([{Opt, Val} | Options]) ->
     [ ensure_list(Opt) ++ "=" ++ ensure_list(Val) | texts_data(Options)];
 texts_data([]) ->
     [].
 
-instance(Hostname, #state{type = Type, domain = Domain}) ->
-    Hostname ++ "." ++ Type ++ Domain.
+instance(Hostname, #state{service = Service}) ->
+    Hostname ++ "." ++ Service.
 
 ensure_list(I) when is_integer(I) ->
     integer_to_list(I);
@@ -225,3 +240,37 @@ ensure_list(A) when is_atom(A) ->
     atom_to_list(A);
 ensure_list(L) when is_list(L)->
     L.
+
+check_data(Data, #state{type = Type, domain = Domain}) ->
+    case inet_dns:decode(Data) of
+        {ok, Q} ->
+            Name = Type ++ Domain,
+            check_query(Q, Name);
+        _ ->
+            ok
+    end.
+
+check_query({dns_rec,
+             DnsHeader,
+             [{dns_query, Service , a, in}],
+             [],[],[]}, #state{service = Service}) ->
+    case inet_dns:header(DnsHeader, opcode) of
+        'query' ->
+            advertise();
+        _ ->
+            ok
+    end;
+
+check_query({dns_rec,
+             DnsHeader,
+             [{dns_query, "_services._dns-sd._udp." ++ Domain, ptr, in}],
+             [],[],[]}, #state{domain = Domain}) ->
+    case inet_dns:header(DnsHeader, opcode) of
+        'query' ->
+            advertise();
+        _ ->
+            ok
+    end;
+
+check_query(_, _) ->
+    ok.
