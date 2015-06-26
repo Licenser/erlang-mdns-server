@@ -241,18 +241,17 @@ ensure_list(A) when is_atom(A) ->
 ensure_list(L) when is_list(L)->
     L.
 
-check_data(Data, #state{type = Type, domain = Domain}) ->
+check_data(Data, State) ->
     case inet_dns:decode(Data) of
         {ok, Q} ->
-            Name = Type ++ Domain,
-            check_query(Q, Name);
+            check_query(Q, State);
         _ ->
             ok
     end.
 
 check_query({dns_rec,
              DnsHeader,
-             [{dns_query, Service , a, in}],
+             [{dns_query, Service, _, _}],
              [],[],[]}, #state{service = Service}) ->
     case inet_dns:header(DnsHeader, opcode) of
         'query' ->
