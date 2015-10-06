@@ -9,7 +9,7 @@
                     {domain,".local"},
                     {ip,"127.0.0.1"},
                     {port,"4223"}]},
-              {contributors,["Peter Morgan","Heinz N. Gies"]},
+              {maintainers,["Heinz N. Gies"]},
               {licenses,["MIT"]},
               {links,[{"Github",
                        "https://github.com/Licenser/erlang-mdns-server"}]}]}.
