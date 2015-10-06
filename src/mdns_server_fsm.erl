@@ -115,8 +115,8 @@ init([], #state{type = Type, domain = Domain} = State) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
-initialized(connect, #state{port = Port, address = Address,
-                           interface = IFace} = State) ->
+initialized(start, #state{port = Port, address = Address,
+                          interface = IFace} = State) ->
     If = case IFace of
              undefined ->
                  multicast_if();
