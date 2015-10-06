@@ -135,7 +135,8 @@ initialized(start, #state{port = Port, address = Address,
 initialized(_, State) ->
     {next_state, initialized, State}.
 
-running(stop, State = #state{socket = Socket}) ->
+running(stop, State = #state{socket = Socket, timer = T}) ->
+    timer:cancel(T),
     announce(State#state{ttl = 0}),
     gen_udp:close(Socket),
     {next_State, initialized, State#state{socket = undefined}};
@@ -143,8 +144,8 @@ running(stop, State = #state{socket = Socket}) ->
 running(announce, State = #state{timer = T}) ->
     timer:cancel(T),
     announce(State),
-    {ok, T} = timer:apply_after(random_timeout(initial, State), ?MODULE, announce, []),
-    {next_state, running, State#state{timer = T}};
+    {ok, T1} = timer:apply_after(random_timeout(initial, State), ?MODULE, announce, []),
+    {next_state, running, State#state{timer = T1}};
 running(_, State) ->
     {next_state, running, State}.
 
@@ -242,6 +243,11 @@ handle_info(_Info, StateName, State) ->
 %% @spec terminate(Reason, StateName, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
+terminate(_Reason, running, State = #state{socket = Socket, timer = T}) ->
+    timer:cancel(T),
+    announce(State#state{ttl = 0}),
+    gen_udp:close(Socket);
+
 terminate(_Reason, _StateName, _State) ->
     ok.
 
