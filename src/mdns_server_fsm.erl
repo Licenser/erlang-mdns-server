@@ -141,13 +141,10 @@ running(stop, State = #state{socket = Socket}) ->
     {next_State, initialized, State#state{socket = undefined}};
 
 running(announce, State = #state{timer = T}) ->
-    erlang:cancel_timer(T),
+    timer:cancel(T),
     announce(State),
     {ok, T} = timer:apply_after(random_timeout(initial, State), ?MODULE, announce, []),
     {next_state, running, State#state{timer = T}};
-running({udp, _Sock, _IP, 5353, Data}, State) ->
-    check_data(Data, State),
-    {next_state, running, State};
 running(_, State) ->
     {next_state, running, State}.
 
@@ -228,6 +225,9 @@ handle_sync_event(_Event, _From, StateName, State) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
+handle_info({udp, _Sock, _IP, 5353, Data}, running, State) ->
+    check_data(Data, State),
+    {next_state, running, State};
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
