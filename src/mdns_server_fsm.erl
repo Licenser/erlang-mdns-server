@@ -11,14 +11,14 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/0]).
+-export([start_link/1,
+         start/0, stop/0, announce/0]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
          terminate/3, code_change/4,
          running/2, running/3,
-         initialized/2, initialized/3,
-         start/0, stop/0, announce/0]).
+         initialized/2, initialized/3]).
 
 -define(SERVER, ?MODULE).
 
@@ -46,8 +46,8 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    gen_fsm:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Parameters) ->
+    gen_fsm:start_link({local, ?SERVER}, ?MODULE, Parameters, []).
 
 start() ->
     gen_fsm:send_event(?SERVER, start).
