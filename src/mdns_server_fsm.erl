@@ -123,12 +123,18 @@ initialized(start, #state{port = Port, address = Address,
              _ ->
                  IFace
          end,
-    {ok, Socket} = gen_udp:open(Port, [{reuseaddr, true},
-                                       {multicast_if, If},
-                                       {ip, Address},
-                                       {multicast_loop, true},
-                                       {add_membership, {Address, If}},
-                                       binary]),
+    {ok, Socket} =
+        case os:type() of
+            {unix, darwin} ->
+                gen_udp:open(0, [binary]);
+            _ ->
+                gen_udp:open(Port, [{reuseaddr, true},
+                                    {multicast_if, If},
+                                    {ip, Address},
+                                    {multicast_loop, true},
+                                    {add_membership, {Address, If}},
+                                    binary])
+        end,
     {ok, T} = timer:apply_after(random_timeout(initial, State), ?MODULE, announce, []),
     {next_state, running, State#state{socket = Socket, timer = T}};
 
